@@ -1,25 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
+import { getModelToken } from '@nestjs/mongoose';
+import { UserSchemaClass } from 'src/users';
+import { Model } from 'mongoose';
 
 describe('AuthService', () => {
-  let service: AuthService;
-
-  const mockUserRepository = {
-    save: jest.fn(),
-    find: jest.fn(),
-    findOne: jest.fn(),
-    delete: jest.fn(),
-  };
+  let authService: AuthService;
 
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [AuthService],
     }).compile();
 
-    service = moduleRef.get<AuthService>(AuthService);
+    authService = moduleRef.get<AuthService>(AuthService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(authService).toBeDefined();
   });
 });
