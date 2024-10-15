@@ -5,9 +5,15 @@
 ## User Service
 
 This part is about the service which have usecases to do with User domain.
-We using the [UsersRepository](/src/users/infrastructure/user.repository.ts) to done anything with the data which have to be persistence.
+We are using the [UsersRepository](./infrastructure/users.repository.ts) to handle every task which have to deal with the data which related to the User Domain entity.
 
 ### Lists of test to Satisfy
 
-- create a user instance.
+- create an user instance.
 -
+
+## User Repository
+
+### Document-User-Persistence
+
+As using mongoDB database which is document-model, we provide this [DocumentUser](./infrastructure/document/users.repository.ts) class to collect the persistence data for the User entity.

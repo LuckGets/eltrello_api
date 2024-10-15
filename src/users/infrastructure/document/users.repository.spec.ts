@@ -1,0 +1,1 @@
+describe('Document users repository', () => []);

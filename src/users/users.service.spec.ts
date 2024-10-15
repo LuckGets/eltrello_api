@@ -3,18 +3,25 @@ import { UsersService } from './users.service';
 import { User } from './domain/user';
 import { CreateUserDto } from './dto';
 import { AuthProvidersEnum } from '../auth/auth-providers.enum';
-import { DocumentUserModule } from './infrastructure/document/document-user.module';
+import { UserRepository } from './infrastructure/users.repository';
 
 describe('Users service', () => {
   let service: UsersService;
 
+  const mockUserRepository = {
+    create: jest.fn(),
+  };
   // database block
-  const infraStructurePersistenceModule = DocumentUserModule;
 
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [infraStructurePersistenceModule],
-      providers: [UsersService],
+      providers: [
+        UsersService,
+        {
+          provide: UserRepository,
+          useValue: mockUserRepository,
+        },
+      ],
     }).compile();
 
     service = moduleRef.get<UsersService>(UsersService);
@@ -24,15 +31,15 @@ describe('Users service', () => {
     expect(service).toBeDefined();
   });
 
-  it('should return a new instance of user', () => {
+  it('should return a new instance of user', async () => {
     const mockNewUser: User = {
       id: 1,
       username: 'John doe',
       email: 'johndoe@mail.com',
       password: '123456',
       provider: AuthProvidersEnum.email,
-      createdAt: new Date(Date.now()),
-      updatedAt: new Date(Date.now()),
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
     };
 
     const mockCreateUser: CreateUserDto = {
@@ -41,8 +48,14 @@ describe('Users service', () => {
       password: '123456',
     };
 
-    const result = service.create(mockCreateUser);
+    // Mock the create method to return an instance of User
+    mockUserRepository.create.mockResolvedValue(mockNewUser);
+
+    const result = await service.create(mockCreateUser);
     expect(result).toEqual(mockNewUser);
-    // jest.spyOn(mockUserRepository, 'create');
+
+    expect(mockUserRepository.create).toHaveBeenCalledWith({
+      ...mockCreateUser,
+    });
   });
 });
