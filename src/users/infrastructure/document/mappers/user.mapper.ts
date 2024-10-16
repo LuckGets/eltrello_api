@@ -1,5 +1,7 @@
+import { AuthProvidersEnum } from 'src/auth/auth-providers.enum';
 import { User } from '../../../domain/user';
 import { UserSchemaClass } from '../entities/user.schema';
+import { DomainEntityDto } from 'src/users/dto';
 
 export class UserMapper {
   static toDomain(rawData: UserSchemaClass): User {
@@ -16,7 +18,7 @@ export class UserMapper {
     return domainEntity;
   }
 
-  static toPersistence(domainEntity: User): UserSchemaClass {
+  static toPersistence(domainEntity: DomainEntityDto): UserSchemaClass {
     const persistenceSchema = new UserSchemaClass();
     if (domainEntity.id && typeof domainEntity.id == 'string') {
       persistenceSchema._id = domainEntity.id;

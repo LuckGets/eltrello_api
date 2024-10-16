@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { UserMapper } from './mappers/user.mapper';
 
 import { Injectable } from '@nestjs/common';
+import { DomainEntityDto } from 'src/users/dto';
 
 @Injectable()
 export class UsersDocumentRepository implements UserRepository {
@@ -14,7 +15,7 @@ export class UsersDocumentRepository implements UserRepository {
     private readonly usersModel: Model<UserSchemaClass>,
   ) {}
 
-  async create(data: User): Promise<User> {
+  async create(data: DomainEntityDto): Promise<User> {
     const persistenceModel = UserMapper.toPersistence(data);
     const createdUser = new this.usersModel(persistenceModel);
     const userObject = await createdUser.save();
