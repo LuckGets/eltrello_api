@@ -7,6 +7,7 @@ import { UserMapper } from './mappers/user.mapper';
 
 import { Injectable } from '@nestjs/common';
 import { DomainEntityDto } from 'src/users/dto';
+import { NullableType } from '../../../utils/types';
 
 @Injectable()
 export class UsersDocumentRepository implements UserRepository {
@@ -20,5 +21,12 @@ export class UsersDocumentRepository implements UserRepository {
     const createdUser = new this.usersModel(persistenceModel);
     const userObject = await createdUser.save();
     return UserMapper.toDomain(userObject);
+  }
+
+  async findByEmail(email: User['email']): Promise<NullableType<User>> {
+    if (!email) return null;
+
+    const userObj = await this.usersModel.findOne({ email });
+    return userObj ? UserMapper.toDomain(userObj) : null;
   }
 }

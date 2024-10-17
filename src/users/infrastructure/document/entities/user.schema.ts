@@ -17,7 +17,6 @@ export class UserSchemaClass extends DocumentEntityHelper {
   @IsNotEmpty()
   @Prop({
     type: String,
-    unique: true,
   })
   username: string;
 
