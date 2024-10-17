@@ -15,51 +15,55 @@ describe('Users service', () => {
   // database block
 
   beforeAll(async () => {
-    mockUserRepository = {
-      create: jest.fn(),
-      findByEmail: jest.fn(),
-    };
+    try {
+      mockUserRepository = {
+        create: jest.fn(),
+        findByEmail: jest.fn(),
+      };
 
-    const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [
-        UsersService,
-        {
-          provide: UserRepository,
-          useValue: mockUserRepository,
-        },
-        {
-          provide: CryptoService,
-          useClass: BcryptService,
-        },
-      ],
-    }).compile();
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        providers: [
+          UsersService,
+          {
+            provide: UserRepository,
+            useValue: mockUserRepository,
+          },
+          {
+            provide: CryptoService,
+            useClass: BcryptService,
+          },
+        ],
+      }).compile();
 
-    // get the UserService from module
-    service = moduleRef.get<UsersService>(UsersService);
-    // get the cryptoService from module
-    cryptoService = moduleRef.get<CryptoService>(CryptoService);
+      // get the UserService from module
+      service = moduleRef.get<UsersService>(UsersService);
+      // get the cryptoService from module
+      cryptoService = moduleRef.get<CryptoService>(CryptoService);
+    } catch (err) {
+      console.log(err);
+    }
   });
 
   describe('create method', () => {
-    // Mock the data to pass in method
-    let mockCreateUser: CreateUserDto;
-    let mockExistingUser: User;
-    beforeEach(() => {
-      // Mock the user data
-      mockCreateUser = {
+    // Preparing the mock data
+    function prepare(): {
+      mockCreateUser: CreateUserDto;
+      mockExistingUser: User;
+    } {
+      // Mock the data to pass in method
+      const mockCreateUser: CreateUserDto = {
         email: 'johndoe@mail.com',
         username: 'John doe',
         password: '123456',
       };
-
       // Mock the existing user
-      mockExistingUser = new User();
+      const mockExistingUser = new User();
       mockExistingUser.email = 'janedoe@mail.com';
-
-      // Mock the user repo which is the dependencies of this service class.
-    });
+      return { mockCreateUser, mockExistingUser };
+    }
 
     it('should return a new instance of user', async () => {
+      const { mockCreateUser } = prepare();
       // Mock the create method to return an instance of User
       mockUserRepository.create.mockImplementation(async (data) => {
         const user = new User();
@@ -74,6 +78,7 @@ describe('Users service', () => {
     });
 
     it('should return an instance of User with hashed password', async () => {
+      const { mockCreateUser } = prepare();
       const hashFn = jest.spyOn(cryptoService, 'hash');
 
       mockUserRepository.create.mockImplementation(async (data) => {
@@ -105,6 +110,7 @@ describe('Users service', () => {
     });
 
     it('should throw an error "email already existing" if the email is existing when creating', async () => {
+      const { mockExistingUser } = prepare();
       mockUserRepository.findByEmail.mockImplementation(
         async (email: User['email']) => {
           if (email === mockExistingUser.email) {
@@ -136,11 +142,11 @@ describe('Users service', () => {
         mockCreateDupeUser.email,
       );
     });
-
-    it('should throw an error "username already existing" if the username is existing', async () => {});
   });
 
   describe('findByEmail', () => {
-    it('should return an instance of user if give the right email of exist user.', () => {});
+    it.todo(
+      'should return an instance of user if give the right email of exist user.',
+    );
   });
 });
