@@ -43,4 +43,8 @@ export class UsersService {
   async findByEmail(email: User['email']): Promise<NullableType<User>> {
     return this.userRepo.findByEmail(email);
   }
+
+  async findById(id: User['id']): Promise<NullableType<User>> {
+    return this.userRepo.findById(id);
+  }
 }

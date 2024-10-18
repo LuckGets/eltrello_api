@@ -10,4 +10,6 @@ export abstract class UserRepository {
   ): Promise<User>;
 
   abstract findByEmail(email: User['email']): Promise<NullableType<User>>;
+
+  abstract findById(id: User['id']): Promise<NullableType<User>>;
 }

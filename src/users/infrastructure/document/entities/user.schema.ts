@@ -48,7 +48,7 @@ export class UserSchemaClass extends DocumentEntityHelper {
   updatedAt: Date;
 
   @Prop()
-  deletedAt: Date;
+  deletedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserSchemaClass);
