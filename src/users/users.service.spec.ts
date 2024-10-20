@@ -30,6 +30,7 @@ describe('Users service', () => {
     };
     // Mock the existing user
     const mockExistingUser = new User();
+    mockExistingUser.id = mockId;
     mockExistingUser.email = mockEmail;
     return { mockCreateUser, mockExistingUser };
   }
@@ -53,6 +54,14 @@ describe('Users service', () => {
           }
         },
       );
+
+      mockUserRepository.findById.mockImplementation(async (id: User['id']) => {
+        if (id === mockExistingUser.id) {
+          return mockExistingUser;
+        } else {
+          return null;
+        }
+      });
 
       const moduleRef: TestingModule = await Test.createTestingModule({
         providers: [
@@ -165,6 +174,43 @@ describe('Users service', () => {
       expect(mockUserRepository.findByEmail).toHaveBeenCalledTimes(1);
     });
 
-    it('should return null if provide the non-existent email', async () => {});
+    it('should return null if provide the non-existent email', async () => {
+      const nonExistMail = 'hahahaEiEI@mail.com';
+
+      const nullUserObj = await service.findByEmail(nonExistMail);
+
+      expect(nullUserObj).toBeNull();
+      expect(nullUserObj).not.toBeInstanceOf(User);
+
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(nonExistMail);
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findById', () => {
+    const { mockExistingUser } = prepare();
+
+    it('should return an instance of User if provide the correct and exisitng ID', async () => {
+      const userObj = await service.findById(mockId);
+
+      expect(userObj).toBeInstanceOf(User);
+      expect(userObj).toStrictEqual(mockExistingUser);
+
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(mockId);
+      expect(mockUserRepository.findById).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return null if provide the non-existing ID', async () => {
+      const mockNonExistingId = 69;
+      const nullUserObj = await service.findById(mockNonExistingId);
+
+      expect(nullUserObj).toBeNull();
+      expect(nullUserObj).not.toBeInstanceOf(User);
+
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(
+        mockNonExistingId,
+      );
+      expect(mockUserRepository.findById).toHaveBeenCalledTimes(1);
+    });
   });
 });
