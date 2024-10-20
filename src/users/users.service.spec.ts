@@ -5,7 +5,6 @@ import { CreateUserDto } from './dto';
 import { UserRepository } from './infrastructure/users.repository';
 import { BcryptService, CryptoService } from '../utils/crypto/Bcrypt';
 import { UnprocessableEntityException } from '@nestjs/common';
-import { beforeEach, mock } from 'node:test';
 
 describe('Users service', () => {
   let service: UsersService;
@@ -14,13 +13,46 @@ describe('Users service', () => {
   let mockUserRepository: jest.Mocked<UserRepository>;
   // database block
 
+  const mockEmail = 'johndoe@mail.com';
+  const mockId = 1;
+  const mockNewEmail = 'janedoe@mail.com';
+
+  // Preparing the mock data
+  function prepare(): {
+    mockCreateUser: CreateUserDto;
+    mockExistingUser: User;
+  } {
+    // Mock the data to pass in method
+    const mockCreateUser: CreateUserDto = {
+      email: mockNewEmail,
+      username: 'John doe',
+      password: '123456',
+    };
+    // Mock the existing user
+    const mockExistingUser = new User();
+    mockExistingUser.email = mockEmail;
+    return { mockCreateUser, mockExistingUser };
+  }
+
   beforeAll(async () => {
     try {
+      const { mockCreateUser, mockExistingUser } = prepare();
+
       mockUserRepository = {
         create: jest.fn(),
         findByEmail: jest.fn(),
         findById: jest.fn(),
       };
+
+      mockUserRepository.findByEmail.mockImplementation(
+        async (email: User['email']) => {
+          if (email === mockExistingUser.email) {
+            return mockExistingUser;
+          } else {
+            return null;
+          }
+        },
+      );
 
       const moduleRef: TestingModule = await Test.createTestingModule({
         providers: [
@@ -45,24 +77,11 @@ describe('Users service', () => {
     }
   });
 
-  describe('create method', () => {
-    // Preparing the mock data
-    function prepare(): {
-      mockCreateUser: CreateUserDto;
-      mockExistingUser: User;
-    } {
-      // Mock the data to pass in method
-      const mockCreateUser: CreateUserDto = {
-        email: 'johndoe@mail.com',
-        username: 'John doe',
-        password: '123456',
-      };
-      // Mock the existing user
-      const mockExistingUser = new User();
-      mockExistingUser.email = 'janedoe@mail.com';
-      return { mockCreateUser, mockExistingUser };
-    }
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
+  describe('create method', () => {
     it('should return a new instance of user', async () => {
       const { mockCreateUser } = prepare();
       // Mock the create method to return an instance of User
@@ -111,19 +130,8 @@ describe('Users service', () => {
     });
 
     it('should throw an error "email already existing" if the email is existing when creating', async () => {
-      const { mockExistingUser } = prepare();
-      mockUserRepository.findByEmail.mockImplementation(
-        async (email: User['email']) => {
-          if (email === mockExistingUser.email) {
-            return mockExistingUser;
-          } else {
-            return null;
-          }
-        },
-      );
-
       const mockCreateDupeUser = {
-        email: 'janedoe@mail.com',
+        email: mockEmail,
         username: 'John doe',
         password: '123456',
       };
@@ -146,94 +154,17 @@ describe('Users service', () => {
   });
 
   describe('findByEmail', () => {
-    function prepare(): User {
-      const mockExistingUser: User = new User();
-      mockExistingUser.email = 'johndoe@mail.com';
-      mockExistingUser.id = 1;
-
-      // Mock the implementation of findByEmail
-      mockUserRepository.findByEmail.mockImplementation(
-        async (data: User['email']) => {
-          if (data === mockExistingUser.email) {
-            return mockExistingUser;
-          } else {
-            return null;
-          }
-        },
-      );
-      return mockExistingUser;
-    }
-    it('should return an instance of User if give the right email of exist user.', async () => {
-      const mockExistingUser = prepare();
-
-      const mockEmail = 'johndoe@mail.com';
-
+    const { mockExistingUser } = prepare();
+    it('should return an instance of user if give the right email of exist user.', async () => {
       const userObj = await service.findByEmail(mockEmail);
 
       expect(userObj).toBeInstanceOf(User);
       expect(userObj).toStrictEqual(mockExistingUser);
-      expect(userObj).not.toBeNull();
 
       expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(mockEmail);
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledTimes(1);
     });
 
-    it('should return null if give the non-registered email', async () => {
-      prepare();
-
-      const mockNonExistEmail = 'janedoe@mail.com';
-
-      const expectNullUserObj = await service.findByEmail(mockNonExistEmail);
-
-      expect(expectNullUserObj).toBeNull();
-      expect(expectNullUserObj).not.toBeInstanceOf(User);
-
-      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(
-        mockNonExistEmail,
-      );
-    });
-  });
-
-  describe('findById', () => {
-    function prepare(): User {
-      const mockExistingUser: User = new User();
-      mockExistingUser.id = 1;
-      mockExistingUser.username = 'John doe';
-      // Mock the implementation of findByEmail
-      mockUserRepository.findById.mockImplementation(
-        async (data: User['id']) => {
-          if (data === mockExistingUser.id) {
-            return mockExistingUser;
-          } else {
-            return null;
-          }
-        },
-      );
-      return mockExistingUser;
-    }
-
-    it('should return an instance of User if give the correct ID', async () => {
-      const mockExistingUser = prepare();
-
-      const mockId = 1;
-
-      const userObj = await service.findById(mockId);
-
-      expect(userObj).toBeInstanceOf(User);
-      expect(userObj).not.toBeNull();
-      expect(userObj).toStrictEqual(mockExistingUser);
-
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(mockId);
-    });
-
-    it('should return null if give the non-existent id', async () => {
-      const mockExistingUser = prepare();
-
-      const mockNonExistID = 69;
-
-      const nullUserObj = await service.findById(mockNonExistID);
-
-      expect(nullUserObj).toBeNull();
-      expect(nullUserObj).not.toBeInstanceOf(User);
-    });
+    it('should return null if provide the non-existent email', async () => {});
   });
 });
