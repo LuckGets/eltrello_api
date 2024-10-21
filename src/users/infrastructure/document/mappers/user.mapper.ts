@@ -5,6 +5,9 @@ import { DomainEntityDto } from 'src/users/dto';
 
 export class UserMapper {
   static toDomain(rawData: UserSchemaClass): User {
+    if (!rawData) {
+      return null;
+    }
     const domainEntity = new User();
     domainEntity.id = rawData._id.toString();
     domainEntity.email = rawData.email;

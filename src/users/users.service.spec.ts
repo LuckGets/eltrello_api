@@ -21,6 +21,7 @@ describe('Users service', () => {
   function prepare(): {
     mockCreateUser: CreateUserDto;
     mockExistingUser: User;
+    usersLists: Array<User>;
   } {
     // Mock the data to pass in method
     const mockCreateUser: CreateUserDto = {
@@ -32,7 +33,18 @@ describe('Users service', () => {
     const mockExistingUser = new User();
     mockExistingUser.id = mockId;
     mockExistingUser.email = mockEmail;
-    return { mockCreateUser, mockExistingUser };
+
+    const usersLists: Array<User> = [mockExistingUser];
+
+    for (let i = 1; i <= 10; i++) {
+      const newMockUser = new User();
+      newMockUser.id = mockId + i;
+      newMockUser.email = `${i}${mockEmail}`;
+
+      usersLists.push(newMockUser);
+    }
+
+    return { mockCreateUser, mockExistingUser, usersLists };
   }
 
   beforeAll(async () => {
@@ -211,6 +223,21 @@ describe('Users service', () => {
         mockNonExistingId,
       );
       expect(mockUserRepository.findById).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findManyWithPagination', () => {
+    const { mockExistingUser, usersLists } = prepare();
+
+    it('should return an Array lists of User instance', () => {
+      const userObj = await service.findManyWithPagination();
+
+      expect(userObj).not.toBeNull();
+      expect(userObj[0]).toBeInstanceOf(User);
+
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledTimes(
+        1,
+      );
     });
   });
 });

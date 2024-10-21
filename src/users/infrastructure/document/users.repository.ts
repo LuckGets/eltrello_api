@@ -7,7 +7,13 @@ import { UserMapper } from './mappers/user.mapper';
 
 import { Injectable } from '@nestjs/common';
 import { DomainEntityDto } from 'src/users/dto';
-import { NullableType } from '../../../utils/types';
+import {
+  DefaultPaginationOption,
+  IPaginationOptions,
+  NullableType,
+  OrderQuery,
+} from '../../../utils/types';
+import { SortUsersDto } from '../../dto/query-user.dto';
 
 @Injectable()
 export class UsersDocumentRepository implements UserRepository {
@@ -33,5 +39,33 @@ export class UsersDocumentRepository implements UserRepository {
   async findById(id: User['id']): Promise<NullableType<User>> {
     const userObj = await this.usersModel.findById(id);
     return userObj ? UserMapper.toDomain(userObj) : null;
+  }
+
+  async findManyWithPagination(
+    sortOptions?: Array<SortUsersDto>,
+    paginationOption?: IPaginationOptions,
+  ): Promise<Array<User>> {
+    if (!paginationOption) {
+      paginationOption = {
+        page: DefaultPaginationOption.PAGE,
+        limit: DefaultPaginationOption.LIMIT,
+      };
+    }
+
+    const userLists = await this.usersModel
+      .find()
+      .sort(
+        sortOptions?.reduce(
+          (acc, curr) => ({
+            ...acc,
+            [curr.orderBy === 'id' ? '_id' : curr.orderBy]:
+              curr.order === OrderQuery.ASC ? 1 : -1,
+          }),
+          {},
+        ),
+      )
+      .skip((paginationOption.page - 1) * paginationOption.limit)
+      .limit(paginationOption.limit);
+    return userLists.map((item) => UserMapper.toDomain(item));
   }
 }
