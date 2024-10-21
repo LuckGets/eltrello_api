@@ -5,6 +5,8 @@ import { CreateUserDto } from './dto';
 import { UserRepository } from './infrastructure/users.repository';
 import { BcryptService, CryptoService } from '../utils/crypto/Bcrypt';
 import { UnprocessableEntityException } from '@nestjs/common';
+import { DefaultPaginationOption, IPaginationOptions } from '../utils/types';
+import { SortUsersDto } from './dto/query-user.dto';
 
 describe('Users service', () => {
   let service: UsersService;
@@ -36,7 +38,7 @@ describe('Users service', () => {
 
     const usersLists: Array<User> = [mockExistingUser];
 
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 20; i++) {
       const newMockUser = new User();
       newMockUser.id = mockId + i;
       newMockUser.email = `${i}${mockEmail}`;
@@ -49,12 +51,13 @@ describe('Users service', () => {
 
   beforeAll(async () => {
     try {
-      const { mockCreateUser, mockExistingUser } = prepare();
+      const { mockCreateUser, mockExistingUser, usersLists } = prepare();
 
       mockUserRepository = {
         create: jest.fn(),
         findByEmail: jest.fn(),
         findById: jest.fn(),
+        findManyWithPagination: jest.fn(),
       };
 
       mockUserRepository.findByEmail.mockImplementation(
@@ -74,6 +77,27 @@ describe('Users service', () => {
           return null;
         }
       });
+
+      mockUserRepository.findManyWithPagination.mockImplementation(
+        async (
+          sortOptions: SortUsersDto[],
+          paginationOption: IPaginationOptions,
+        ) => {
+          if (paginationOption) {
+            const newUserList: User[] = [];
+            const startPage =
+              (paginationOption.page - 1) * paginationOption.limit;
+            const limit = paginationOption.page * paginationOption.limit;
+            for (let i = startPage; i < limit; i++) {
+              if (usersLists.length === i) break;
+              newUserList.push(usersLists[i]);
+            }
+            return newUserList;
+          } else {
+            return usersLists.slice(0, 10);
+          }
+        },
+      );
 
       const moduleRef: TestingModule = await Test.createTestingModule({
         providers: [
@@ -229,7 +253,7 @@ describe('Users service', () => {
   describe('findManyWithPagination', () => {
     const { mockExistingUser, usersLists } = prepare();
 
-    it('should return an Array lists of User instance', () => {
+    it('should return an Array lists of User instance', async () => {
       const userObj = await service.findManyWithPagination();
 
       expect(userObj).not.toBeNull();
@@ -239,5 +263,76 @@ describe('Users service', () => {
         1,
       );
     });
+
+    it('should return the List of User instance with pagination which provided by default', async () => {
+      const defaultLimit = DefaultPaginationOption.LIMIT;
+
+      const userObj = await service.findManyWithPagination();
+
+      expect(userObj).not.toBeNull();
+      expect(userObj[0]).toBeInstanceOf(User);
+      expect(userObj[0]).toStrictEqual(mockExistingUser);
+
+      expect(userObj.length).toEqual(defaultLimit);
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledTimes(
+        1,
+      );
+    });
+
+    it('should skip the order of user if provide the number of skipping order to paginationOption', async () => {
+      const mockSkip = 2;
+
+      const paginationOption: IPaginationOptions = {
+        limit: DefaultPaginationOption.LIMIT,
+        page: mockSkip,
+      };
+
+      const userObj = await service.findManyWithPagination(
+        null,
+        paginationOption,
+      );
+
+      expect(userObj[0]).toBeInstanceOf(User);
+      expect(userObj[0].id).toEqual(
+        DefaultPaginationOption.LIMIT + (mockSkip - 1),
+      );
+
+      expect(userObj.length).toEqual(DefaultPaginationOption.LIMIT);
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledWith(
+        null,
+        paginationOption,
+      );
+    });
+
+    it('should give the same amount of instance of User if provide the limit number to paginationOption', async () => {
+      const mockLimitNum = 7;
+
+      const paginationOption: IPaginationOptions = {
+        limit: mockLimitNum,
+        page: DefaultPaginationOption.PAGE,
+      };
+
+      const userObj = await service.findManyWithPagination(
+        null,
+        paginationOption,
+      );
+
+      expect(userObj[0]).toBeInstanceOf(User);
+      expect(userObj.length).toEqual(mockLimitNum);
+      expect(userObj[mockLimitNum - 1].id).toEqual(mockLimitNum);
+
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledWith(
+        null,
+        paginationOption,
+      );
+    });
+
+    it('should return the sorted List of User if provide the SortOptions', async () => {});
   });
 });

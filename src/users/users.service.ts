@@ -8,7 +8,8 @@ import { User } from './domain/user';
 import { CreateUserDto } from './dto';
 import { UserRepository } from './infrastructure/users.repository';
 import { CryptoService } from '../utils';
-import { NullableType } from '../utils/types';
+import { IPaginationOptions, NullableType } from '../utils/types';
+import { SortUsersDto } from './dto/query-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -46,5 +47,12 @@ export class UsersService {
 
   async findById(id: User['id']): Promise<NullableType<User>> {
     return this.userRepo.findById(id);
+  }
+
+  async findManyWithPagination(
+    sortOptions?: SortUsersDto[],
+    paginationOption?: IPaginationOptions,
+  ): Promise<NullableType<User[]>> {
+    return this.userRepo.findManyWithPagination(sortOptions, paginationOption);
   }
 }
