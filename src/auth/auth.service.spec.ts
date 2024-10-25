@@ -18,6 +18,11 @@ import { BcryptService, CryptoService } from '../utils';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthConfig } from './config/auth.config.type';
+import {
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { AuthUserLoginDto } from './dto/auth-login.dto';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -135,16 +140,57 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const authLoginUserDto = {};
+    const authLoginUserDto: AuthUserLoginDto = {};
 
     beforeEach(function () {
       jest.clearAllMocks();
     });
 
-    it('should check if user exists by email', async () => {
+    it('should check if the email already exist in the DB once', async () => {
       await authService.validateLogin(authLoginUserDto);
 
       expect(mockUsersService.findByEmail).toHaveBeenCalledTimes(1);
     });
+
+    it('should throw an Error if the email is not registered in the DB', async () => {
+      const nonExistUserDto = { ...authLoginUserDto, email: '696969@mail.com' };
+      try {
+        await authService.validateLogin(authLoginUserDto);
+        fail(
+          'Expected UsersService.findByEmail to throw an UnprocessableEntityException',
+        );
+      } catch (err) {
+        expect(err).toBeInstanceOf(UnprocessableEntityException);
+        console.log(err);
+      }
+    });
+
+    it('should compare the password provided and the password in the DB', async () => {
+      await authService.validateLogin(authLoginUserDto);
+
+      expect(cryptoService.compare).toHaveBeenCalledTimes(1);
+      expect(cryptoService.compare).toHaveBeenCalledWith(
+        authLoginUserDto.password,
+      );
+    });
+
+    it('should throw an Unauthorized Error if the provided password does not match with the password registered', async () => {
+      const wrongPasswordDto: AuthUserLoginDto = {
+        ...authLoginUserDto,
+        password: '69696969',
+      };
+      try {
+        await authService.validateLogin(wrongPasswordDto);
+        fail(
+          'Expect authService.validateLogin to throw an UnauthorizedException',
+        );
+      } catch (err) {
+        expect(err).toBeInstanceOf(UnauthorizedException);
+      }
+    });
+
+    it.todo('should throw an Error if providers is not email');
+
+    it('should create the session for user', async () => {});
   });
 });

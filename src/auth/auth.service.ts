@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from '../config';
 import { LoginResponseDto } from './dto/login-response.dto';
+import { AuthUserLoginDto } from './dto/auth-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -37,7 +38,9 @@ export class AuthService {
     );
   }
 
-  public async validateLogin(): Promise<LoginResponseDto> {
+  public async validateLogin(
+    authLoginDto: AuthUserLoginDto,
+  ): Promise<LoginResponseDto> {
     return new LoginResponseDto();
   }
 }
