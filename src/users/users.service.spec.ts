@@ -1,12 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { User } from './domain/user';
-import { CreateUserDto } from './dto';
+import { CreateUserDto, SortUsersDto } from './dto';
 import { UserRepository } from './infrastructure/users.repository';
 import { BcryptService, CryptoService } from '../utils/crypto/Bcrypt';
 import { UnprocessableEntityException } from '@nestjs/common';
-import { DefaultPaginationOption, IPaginationOptions } from '../utils/types';
-import { SortUsersDto } from './dto/query-user.dto';
+import {
+  DefaultPaginationOption,
+  IPaginationOptions,
+  OrderQuery,
+} from '../utils/types';
 
 describe('Users service', () => {
   let service: UsersService;
@@ -18,6 +21,7 @@ describe('Users service', () => {
   const mockEmail = 'johndoe@mail.com';
   const mockId = 1;
   const mockNewEmail = 'janedoe@mail.com';
+  const usersListsLength = 21;
 
   // Preparing the mock data
   function prepare(): {
@@ -38,7 +42,7 @@ describe('Users service', () => {
 
     const usersLists: Array<User> = [mockExistingUser];
 
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i < usersListsLength; i++) {
       const newMockUser = new User();
       newMockUser.id = mockId + i;
       newMockUser.email = `${i}${mockEmail}`;
@@ -51,13 +55,14 @@ describe('Users service', () => {
 
   beforeAll(async () => {
     try {
-      const { mockCreateUser, mockExistingUser, usersLists } = prepare();
+      const { mockExistingUser, usersLists } = prepare();
 
       mockUserRepository = {
         create: jest.fn(),
         findByEmail: jest.fn(),
         findById: jest.fn(),
         findManyWithPagination: jest.fn(),
+        update: jest.fn(),
       };
 
       mockUserRepository.findByEmail.mockImplementation(
@@ -83,18 +88,29 @@ describe('Users service', () => {
           sortOptions: SortUsersDto[],
           paginationOption: IPaginationOptions,
         ) => {
+          const resultUsersLists: User[] = [...usersLists];
+
+          if (sortOptions && sortOptions.length > 0) {
+            sortOptions.forEach((sortOption) => {
+              resultUsersLists.sort((a, b) => {
+                const fieldA = a[sortOption.orderBy];
+                const fieldB = b[sortOption.orderBy];
+                if (sortOption.order === OrderQuery.ASC) {
+                  return fieldA > fieldB ? 1 : -1;
+                } else {
+                  return fieldA < fieldB ? 1 : -1;
+                }
+              });
+            });
+          }
+
           if (paginationOption) {
-            const newUserList: User[] = [];
             const startPage =
               (paginationOption.page - 1) * paginationOption.limit;
             const limit = paginationOption.page * paginationOption.limit;
-            for (let i = startPage; i < limit; i++) {
-              if (usersLists.length === i) break;
-              newUserList.push(usersLists[i]);
-            }
-            return newUserList;
+            return resultUsersLists.slice(startPage, limit);
           } else {
-            return usersLists.slice(0, 10);
+            return resultUsersLists.slice(0, 10);
           }
         },
       );
@@ -333,6 +349,22 @@ describe('Users service', () => {
       );
     });
 
-    it('should return the sorted List of User if provide the SortOptions', async () => {});
+    it('should return the sorted List of User if provide the SortOptions', async () => {
+      const sortoptions: SortUsersDto = new SortUsersDto();
+      sortoptions.order = OrderQuery.DESC;
+      sortoptions.orderBy = 'id';
+
+      const sortOptionsArr = [sortoptions];
+
+      const userObj = await service.findManyWithPagination(sortOptionsArr);
+
+      expect(userObj.length).not.toEqual(0);
+      expect(userObj[0]).toBeInstanceOf(User);
+      expect(userObj[0].id).toEqual(usersListsLength);
+
+      expect(mockUserRepository.findManyWithPagination).toHaveBeenCalledTimes(
+        1,
+      );
+    });
   });
 });

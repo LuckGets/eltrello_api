@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { UserSchemaClass } from './entities/user.schema';
-import { DomainEntityDto } from '../../dto';
+import { DomainEntityDto, UpdateUserDto } from '../../dto';
 import { getModelToken } from '@nestjs/mongoose';
 import { User } from '../../domain/user';
 import { UsersDocumentRepository } from './users.repository';
@@ -35,7 +35,7 @@ describe('Document users repository', () => {
   function prepare(): User {
     const domainUser = new User();
 
-    domainUser.id = 1;
+    domainUser.id = mockExistingID;
     domainUser.email = mockExisitingEmail;
     domainUser.username = 'john doe';
     domainUser.password = '123456';
@@ -75,6 +75,14 @@ describe('Document users repository', () => {
       save: saveFnMock,
     };
   }) as unknown as jest.Mocked<Model<UserSchemaClass>>;
+
+  usersModelMock.findOneAndUpdate = jest
+    .fn()
+    .mockImplementation((id, data: UpdateUserDto) => {
+      const newMockSavedUser = { ...mockSavedUser, ...data };
+      console.log(data);
+      return newMockSavedUser;
+    });
 
   usersModelMock.findOne = findOneFnMock;
   usersModelMock.findById = findByIdFnMock;
@@ -169,4 +177,25 @@ describe('Document users repository', () => {
       expect(usersModelMock.findById).toHaveBeenCalledWith(mockFakeId);
     });
   });
+
+  // describe('update', () => {
+  //   const domainUser = prepare();
+  //   const oldUserName = domainUser.username;
+  //   const updatedUserName = 'jane doe';
+  //   it.only('should return an instance of User with the same ID', async () => {
+  //     const updateUserDto: UpdateUserDto = {
+  //       username: updatedUserName,
+  //     };
+  //     const userObj = await documentUserRepo.update(
+  //       mockExistingID,
+  //       updateUserDto,
+  //     );
+
+  //     expect(userObj).toBeInstanceOf(User);
+  //     expect(userObj.id).toEqual(mockExistingID);
+  //     expect(userObj.username).toBe(updatedUserName);
+
+  //     expect(usersModelMock.findOneAndUpdate).toHaveBeenCalledTimes(1);
+  //   });
+  // });
 });

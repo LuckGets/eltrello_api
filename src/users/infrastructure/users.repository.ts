@@ -1,5 +1,6 @@
 import { IPaginationOptions, NullableType } from '../../utils/types';
 import { User } from '../domain/user';
+import { UpdateUserDto } from '../dto';
 import { SortUsersDto } from '../dto/query-user.dto';
 
 export abstract class UserRepository {
@@ -18,4 +19,6 @@ export abstract class UserRepository {
     sortOptions?: SortUsersDto[],
     paginationOption?: IPaginationOptions,
   ): Promise<NullableType<Array<User>>>;
+
+  abstract update(id: User['id'], updateUserDto: UpdateUserDto): Promise<User>;
 }

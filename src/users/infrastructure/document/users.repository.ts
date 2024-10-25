@@ -1,4 +1,4 @@
-import { User } from 'src/users/domain/user';
+import { User } from '../../domain/user';
 import { UserRepository } from '../users.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { UserSchemaClass } from './entities/user.schema';
@@ -6,9 +6,8 @@ import { Model } from 'mongoose';
 import { UserMapper } from './mappers/user.mapper';
 
 import { Injectable } from '@nestjs/common';
-import { DomainEntityDto } from 'src/users/dto';
+import { DomainEntityDto, UpdateUserDto } from 'src/users/dto';
 import {
-  DefaultPaginationOption,
   IPaginationOptions,
   NullableType,
   OrderQuery,
@@ -45,13 +44,6 @@ export class UsersDocumentRepository implements UserRepository {
     sortOptions?: Array<SortUsersDto>,
     paginationOption?: IPaginationOptions,
   ): Promise<Array<User>> {
-    if (!paginationOption) {
-      paginationOption = {
-        page: DefaultPaginationOption.PAGE,
-        limit: DefaultPaginationOption.LIMIT,
-      };
-    }
-
     const userLists = await this.usersModel
       .find()
       .sort(
@@ -67,5 +59,29 @@ export class UsersDocumentRepository implements UserRepository {
       .skip((paginationOption.page - 1) * paginationOption.limit)
       .limit(paginationOption.limit);
     return userLists.map((item) => UserMapper.toDomain(item));
+  }
+
+  async update(
+    id: User['id'],
+    updateUserDto: Partial<User>,
+  ): Promise<NullableType<User>> {
+    const clonedPayload = { ...updateUserDto };
+    const user = await this.usersModel.findById(id);
+
+    const filter = { _id: id.toString() };
+
+    if (!user) {
+      return null;
+    }
+
+    const userObj = await this.usersModel.findOneAndUpdate(
+      filter,
+      UserMapper.toPersistence({
+        ...UserMapper.toDomain(user),
+        ...clonedPayload,
+      }),
+    );
+
+    return userObj ? UserMapper.toDomain(userObj) : null;
   }
 }
