@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import appConfig from './config/app.config';
 import { databaseConfig, MongooseConfigService } from './database';
 import { UserModule } from './users/users.module';
+import { SessionModule } from './session/session.module';
+import appConfig from './config/app.config';
+import authConfig from './auth/config/auth.config';
 
 // const infraStrutureDatabase = (databaseConfig as DatabaseConfig).isDocumentDatabase ? MongooseModule.forRootAsync({}) : ORMModule
 
@@ -16,12 +18,13 @@ const infraStructureDatabase = MongooseModule.forRootAsync({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, authConfig],
       envFilePath: ['.env'],
     }),
     infraStructureDatabase,
     AuthModule,
     UserModule,
+    SessionModule,
   ],
 })
 export class AppModule {}
